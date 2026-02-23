@@ -1,4 +1,6 @@
+/** Single responsibility: print an invoice text block to the console. */
 public class InvoiceFormatter {
-    // pointless wrapper (smell)
-    public static String identityFormat(String s) { return s; }
+    public void print(String invoiceText) {
+        System.out.print(invoiceText);
+    }
 }
