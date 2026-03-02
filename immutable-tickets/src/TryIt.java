@@ -4,31 +4,62 @@ import com.example.tickets.TicketService;
 import java.util.List;
 
 /**
- * Starter demo that shows why mutability is risky.
+ * Demonstrates the refactored, immutable IncidentTicket.
  *
- * After refactor:
- * - direct mutation should not compile (no setters)
- * - external modifications to tags should not affect the ticket
- * - service "updates" should return a NEW ticket instance
+ * Key points shown here:
+ *  1. Building a ticket through the fluent Builder API.
+ *  2. "Updating" by creating a new ticket instance (original untouched).
+ *  3. The tags list returned by getTags() is unmodifiable — external
+ *     code cannot sneak mutations in via the reference.
  */
 public class TryIt {
 
     public static void main(String[] args) {
+
         TicketService service = new TicketService();
 
-        IncidentTicket t = service.createTicket("TCK-1001", "reporter@example.com", "Payment failing on checkout");
-        System.out.println("Created: " + t);
+        // --- 1. Create via service (uses Builder internally) ---
+        IncidentTicket original = service.createTicket(
+                "TCK-1001", "reporter@example.com", "Payment failing on checkout");
+        System.out.println("Created  : " + original);
+        System.out.println("Identity : " + System.identityHashCode(original));
 
-        // Demonstrate post-creation mutation through service
-        service.assign(t, "agent@example.com");
-        service.escalateToCritical(t);
-        System.out.println("\nAfter service mutations: " + t);
+        // --- 2. "Update" via service -> returns a NEW object ---
+        IncidentTicket assigned   = service.assign(original, "agent@example.com");
+        IncidentTicket escalated  = service.escalateToCritical(assigned);
 
-        // Demonstrate external mutation via leaked list reference
-        List<String> tags = t.getTags();
-        tags.add("HACKED_FROM_OUTSIDE");
-        System.out.println("\nAfter external tag mutation: " + t);
+        System.out.println("\nAfter assign    : " + assigned);
+        System.out.println("After escalation: " + escalated);
 
-        // Starter compiles; after refactor, you should redesign updates to create new objects instead.
+        // Prove that 'original' was never changed
+        System.out.println("\nOriginal (unchanged): " + original);
+        System.out.println("All three are different objects? "
+                + (System.identityHashCode(original) != System.identityHashCode(assigned)
+                   && System.identityHashCode(assigned) != System.identityHashCode(escalated)));
+
+        // --- 3. Tags list is unmodifiable – any attempt throws ---
+        List<String> tags = escalated.getTags();
+        System.out.println("\nEscalated tags: " + tags);
+        try {
+            tags.add("HACKED_FROM_OUTSIDE");
+            System.out.println("ERROR: list was mutable! " + escalated.getTags());
+        } catch (UnsupportedOperationException e) {
+            System.out.println("Good: external mutation of tags blocked -> " + e.getClass().getSimpleName());
+        }
+
+        // --- 4. Manual builder usage with optional fields ---
+        IncidentTicket detailed = new IncidentTicket.Builder()
+                .id("TCK-9999")
+                .reporterEmail("alice@company.com")
+                .title("DB connection pool exhausted")
+                .description("All connections taken during peak load")
+                .priority("HIGH")
+                .slaMinutes(120)
+                .source("WEBHOOK")
+                .customerVisible(true)
+                .addTag("DB")
+                .addTag("PERF")
+                .build();
+        System.out.println("\nManual build: " + detailed);
     }
 }
