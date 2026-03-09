@@ -1,13 +1,13 @@
 package com.example.map;
 
 /**
- * CURRENT STATE (BROKEN ON PURPOSE):
- * Each marker owns a private MarkerStyle created via 'new'.
- * This means identical styles are duplicated across thousands of markers.
+ * Represents a single pin on the map.
  *
- * TODO (student):
- * - Store intrinsic state as a shared MarkerStyle obtained from MarkerStyleFactory.
- * - Keep only extrinsic state here: lat, lng, label.
+ * Extrinsic state (unique per marker): lat, lng, label.
+ * Intrinsic state (shared via Flyweight): the MarkerStyle reference.
+ *
+ * The constructor now takes a pre-built MarkerStyle obtained from
+ * MarkerStyleFactory, so identical visual configurations share one object.
  */
 public class MapMarker {
 
@@ -15,21 +15,18 @@ public class MapMarker {
     private final double lng;
     private final String label;
 
-    // BROKEN: style is created per marker; should be shared
+    // Shared flyweight — many markers can point to the same instance
     private final MarkerStyle style;
 
-    public MapMarker(double lat, double lng, String label,
-                     String shape, String color, int size, boolean filled) {
-        this.lat = lat;
-        this.lng = lng;
+    public MapMarker(double lat, double lng, String label, MarkerStyle style) {
+        this.lat   = lat;
+        this.lng   = lng;
         this.label = label;
-
-        // BROKEN: per-marker allocation
-        this.style = new MarkerStyle(shape, color, size, filled);
+        this.style = style;
     }
 
-    public double getLat() { return lat; }
-    public double getLng() { return lng; }
-    public String getLabel() { return label; }
+    public double getLat()      { return lat; }
+    public double getLng()      { return lng; }
+    public String getLabel()    { return label; }
     public MarkerStyle getStyle() { return style; }
 }

@@ -5,22 +5,20 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Generates markers for demo/testing.
+ * Generates synthetic markers for demo and testing purposes.
  *
- * CURRENT STATE (BROKEN ON PURPOSE):
- * - Creates new MarkerStyle per MapMarker via MapMarker constructor.
- *
- * TODO (student):
- * - After introducing MarkerStyleFactory, refactor so identical styles are shared.
- * - Suggested approach:
- *   1) Change MapMarker to accept MarkerStyle directly
- *   2) Use MarkerStyleFactory.get(shape,color,size,filled) here
+ * Styles are fetched from a shared MarkerStyleFactory, so markers that happen
+ * to have the same shape/color/size/fill configuration will reference the
+ * same MarkerStyle instance in memory rather than holding a private copy.
  */
 public class MapDataSource {
 
     private static final String[] SHAPES = {"PIN", "CIRCLE", "SQUARE"};
     private static final String[] COLORS = {"RED", "BLUE", "GREEN", "ORANGE"};
     private static final int[] SIZES = {10, 12, 14, 16};
+
+    // One factory per data-source; it acts as the cache for all styles we create.
+    private final MarkerStyleFactory styleFactory = new MarkerStyleFactory();
 
     public List<MapMarker> loadMarkers(int count) {
         Random rnd = new Random(7);
@@ -31,14 +29,21 @@ public class MapDataSource {
             double lng = 77.5000 + rnd.nextDouble() * 0.2000;
             String label = "M-" + i;
 
-            // Force many duplicates by choosing from small pools
+            // Small pools guarantee many duplicates — perfect for Flyweight gains
             String shape = SHAPES[rnd.nextInt(SHAPES.length)];
             String color = COLORS[rnd.nextInt(COLORS.length)];
-            int size = SIZES[rnd.nextInt(SIZES.length)];
+            int size     = SIZES[rnd.nextInt(SIZES.length)];
             boolean filled = rnd.nextBoolean();
 
-            out.add(new MapMarker(lat, lng, label, shape, color, size, filled));
+            // Obtain a shared style from the factory rather than newing one up
+            MarkerStyle sharedStyle = styleFactory.get(shape, color, size, filled);
+            out.add(new MapMarker(lat, lng, label, sharedStyle));
         }
         return out;
+    }
+
+    /** Exposes how many unique styles were cached (should be ≤ 96 for this data set). */
+    public int uniqueStyleCount() {
+        return styleFactory.cacheSize();
     }
 }
